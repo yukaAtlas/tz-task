@@ -24,10 +24,11 @@ const App = () => {
 
     const lastElement = useCallback(
         (node) => {
-            if (isLoading) return;
+            if (isLoading || error) return;
             const observer = new IntersectionObserver(([entry]) => {
-                if (entry.isIntersecting && pageCounter <= MAX_PAGE) {
-                    setPageCounter(pageCounter + 1);
+                if (entry.isIntersecting) {
+                    // eslint react-hooks/exhaustive-deps
+                    setPageCounter((prev) => prev + 1);
                 }
             });
             if (ref.current) {
@@ -37,12 +38,12 @@ const App = () => {
                 observer.observe(node);
             }
         },
-        [isLoading]
+        [error, isLoading]
     );
 
     React.useEffect(() => {
-        console.log({ modal });
-    }, [modal]);
+        if (error) alert(error);
+    }, [error]);
 
     const handleFadeAnimation =
         (idx: number) => (_: React.MouseEvent<HTMLElement>) => {
@@ -94,7 +95,7 @@ const App = () => {
                 {pageCounter === MAX_PAGE && (
                     <div>This is the end of the data! 🌞</div>
                 )}
-                {isLoading && <div>Loading...</div>}
+                {isLoading && !error && <div>Loading...</div>}
             </div>
             {modal.isOpen && (
                 <div className="modal-root">

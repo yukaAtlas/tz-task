@@ -35,10 +35,11 @@ export const useFetchGists = (pageNumber: number) => {
                     };
                 });
                 setLoading(false);
-                setGistsList([...gistsList, ...necessaryData]);
+                // eslint react-hooks/exhaustive-deps
+                setGistsList((prev) => [...prev, ...necessaryData]);
             })
             .catch((error) => {
-                setError(error.message);
+                setError(error.response.data.message);
             });
     }, [pageNumber]);
     return { isLoading, error, gistsList };
