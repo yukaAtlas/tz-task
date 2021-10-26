@@ -7,7 +7,6 @@ export interface IGist {
 }
 
 export const useFetchGists = (pageNumber: number) => {
-    console.log({ pageNumber });
     const [isLoading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | undefined>(undefined);
     const [gistsList, setGistsList] = useState<IGist[]>([]);
