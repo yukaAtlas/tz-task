@@ -1,74 +1,62 @@
-import { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import { useIntersection } from "./hooks/intersection";
+import { useState, useRef, useCallback } from "react";
+import { useFetchGists, IGist } from "./hooks";
 import "./App.css";
 
 const MAX_GISTS = 3000;
 const PER_PAGE = 30;
 const MAX_PAGE = MAX_GISTS / PER_PAGE;
 
-const fetchGists = async (page: number) => {
-    return await axios
-        .get(`https://api.github.com/gists/public?page=${"" + page}`)
-        .then(({ data }) => {
-            return data;
-        })
-        .catch((error) => alert(error));
-};
-
 const App = () => {
-    const ref = useRef<HTMLDivElement>(
-        null
-    ) as React.MutableRefObject<HTMLDivElement>;
-    const intersection = useIntersection(ref);
-    const [intersected, setIntersected] = useState<boolean>(true);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [gistsList, setGistsList] = useState<any>(undefined);
     const [pageCounter, setPageCounter] = useState<number>(1);
+    const { isLoading, error, gistsList } = useFetchGists(pageCounter);
 
-    useEffect(() => {
-        setIntersected(intersection);
-    }, [intersection]);
+    const ref = useRef<HTMLElement>(
+        null
+    ) as React.MutableRefObject<HTMLElement>;
 
-    useEffect(() => {
-        async function InfinityAPICall() {
-            const data = await fetchGists(pageCounter);
-            setGistsList([...gistsList, ...data]);
-            setPageCounter(pageCounter + 1);
-        }
-
-        if (intersected && !loading) {
-            console.log({ MAX_PAGE, pageCounter });
-            setLoading(true);
-            InfinityAPICall();
-            setLoading(false);
-        }
-    }, [intersected, loading]);
-
-    useEffect(() => {
-        setLoading(true);
-        async function initialAPICall() {
-            const data = await fetchGists(pageCounter);
-            setGistsList(data);
-            setPageCounter(pageCounter + 1);
-        }
-        initialAPICall();
-        setLoading(false);
-    }, []);
+    const lastElement = useCallback(
+        (node) => {
+            if (isLoading) return;
+            const observer = new IntersectionObserver(([entry]) => {
+                if (entry.isIntersecting && pageCounter <= MAX_PAGE) {
+                    setPageCounter(pageCounter + 1);
+                }
+            });
+            if (ref.current) {
+                observer.disconnect();
+            }
+            if (node) {
+                observer.observe(node);
+            }
+        },
+        [isLoading]
+    );
 
     return (
         <div>
-            {gistsList &&
-                gistsList.map((item: any, idx: number) => {
-                    const {
-                        owner: { avatar_url },
-                        files,
-                    } = item;
-                    return (
+            {error && <div>{error}</div>}
+            {gistsList.length > 0 &&
+                gistsList.map((item: IGist, idx: number) => {
+                    return idx === gistsList.length - 1 &&
+                        pageCounter < MAX_PAGE ? (
+                        <div key={idx} ref={lastElement}>
+                            <div className="list-item">
+                                <img
+                                    src={item.avatar_url}
+                                    alt={`${idx}-avatar`}
+                                />
+                                <p>{Object.keys(item.files)[0]}</p>
+                            </div>
+                            <hr />
+                        </div>
+                    ) : (
                         <div key={idx}>
                             <div className="list-item">
-                                <img src={avatar_url} alt={`${idx}-avatar`} />
-                                <p>{Object.keys(files)[0]}</p>
+                                <img
+                                    src={item.avatar_url}
+                                    alt={`${idx}-avatar`}
+                                />
+                                <p>{Object.keys(item.files)[0]}</p>
                             </div>
                             <hr />
                         </div>
@@ -77,7 +65,7 @@ const App = () => {
             {pageCounter === MAX_PAGE && (
                 <div>This is the end of the data! 🌞</div>
             )}
-            {!loading && <div ref={ref}>Loading...</div>}
+            {isLoading && <div>Loading...</div>}
         </div>
     );
 };
