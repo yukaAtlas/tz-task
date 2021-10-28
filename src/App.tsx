@@ -18,24 +18,27 @@ const App = () => {
         selectedProfileURL: string;
     }>(defaultModalValue);
 
-    const ref = useRef<HTMLElement>(
-        null
-    ) as React.MutableRefObject<HTMLElement>;
+    const observer = useRef<IntersectionObserver | null>(null);
 
     const lastElement = useCallback(
         (node) => {
             if (isLoading || error) return;
-            const observer = new IntersectionObserver(([entry]) => {
-                if (entry.isIntersecting) {
-                    // eslint react-hooks/exhaustive-deps
-                    setPageCounter((prev) => prev + 1);
-                }
-            });
-            if (ref.current) {
-                observer.disconnect();
+            if (observer.current) {
+                observer.current.disconnect();
             }
+
+            observer.current = new IntersectionObserver(
+                ([entry]) => {
+                    if (entry.isIntersecting) {
+                        // eslint react-hooks/exhaustive-deps
+                        setPageCounter((prev) => prev + 1);
+                    }
+                },
+                { threshold: 0 }
+            );
+
             if (node) {
-                observer.observe(node);
+                observer.current.observe(node);
             }
         },
         [error, isLoading]
